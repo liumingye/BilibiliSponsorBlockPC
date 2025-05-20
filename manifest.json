@@ -1,0 +1,7 @@
+{
+  "id": "BilibiliSponsorBlock",
+  "name": "Bilibili SponsorBlock",
+  "injects": {
+    "renderer": "./src/renderer.js"
+  }
+}
