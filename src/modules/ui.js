@@ -2,8 +2,7 @@
  * UI模块 - 处理UI相关的功能
  */
 
-import { createElement } from "./utils.js";
-import { categoryStyles, previewBarStyles } from "./config.js";
+import { createElement, getCategoryName } from "./utils.js";
 
 // 存储UI元素引用
 const uiElements = {
@@ -12,97 +11,6 @@ const uiElements = {
   settingsButton: null,
   settingsPanel: null,
 };
-
-/**
- * 初始化UI
- */
-export function initUI() {
-  // 添加样式
-  addStyles();
-}
-
-/**
- * 添加样式
- */
-function addStyles() {
-  const style = document.createElement("style");
-  style.textContent = `
-    ${categoryStyles}
-    ${previewBarStyles}
-    
-    .sponsorblock-button {
-      cursor: pointer;
-      margin-left: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background-color: rgba(0, 0, 0, 0.1);
-      transition: background-color 0.2s;
-    }
-    
-    .sponsorblock-button:hover {
-      background-color: rgba(0, 0, 0, 0.2);
-    }
-    
-    .sponsorblock-settings-panel {
-      position: absolute;
-      bottom: 50px;
-      right: 10px;
-      background-color: #fff;
-      border-radius: 4px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-      padding: 16px;
-      z-index: 100;
-      width: 300px;
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    
-    .sponsorblock-settings-panel h3 {
-      margin-top: 0;
-      margin-bottom: 12px;
-      font-size: 16px;
-    }
-    
-    .sponsorblock-settings-group {
-      margin-bottom: 16px;
-    }
-    
-    .sponsorblock-settings-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-    }
-    
-    .sponsorblock-settings-item label {
-      flex-grow: 1;
-      margin-right: 8px;
-    }
-    
-    .sponsorblock-settings-item select {
-      width: 100px;
-    }
-    
-    .sponsorblock-notice {
-      position: absolute;
-      bottom: 60px;
-      left: 20px;
-      background-color: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 8px 12px;
-      border-radius: 4px;
-      z-index: 100;
-      font-size: 14px;
-      transition: opacity 0.3s;
-    }
-  `;
-
-  document.head.appendChild(style);
-}
 
 /**
  * 创建进度条预览
@@ -180,23 +88,34 @@ export function createSkipButton(controlBar, onSkipClick) {
     uiElements.skipButton.remove();
   }
 
+  const skipButton = document.createElement("div");
+  skipButton.className = "sponsorblock-button";
+  skipButton.textContent = "跳过当前片段";
+  skipButton.style.cssText = `
+    position: absolute;
+    bottom: 80px;
+    left: 20px;
+    z-index: 100;
+  `;
+
   // 创建跳过按钮
-  const skipButton = createElement(
-    "div",
-    {
-      class: "sponsorblock-button",
-      title: "跳过当前片段",
-      style: {
-        color: "#00d400",
-      },
-    },
-    "跳过"
-  );
+  // const skipButton = createElement(
+  //   "div",
+  //   {
+  //     class: "sponsorblock-button",
+  //     title: "跳过当前片段",
+  //     style: {
+  //       color: "#00d400",
+  //     },
+  //   },
+  //   "跳过"
+  // );
 
   skipButton.addEventListener("click", onSkipClick);
 
   // 插入到控制栏
-  controlBar.appendChild(skipButton);
+  document.body.appendChild(skipButton);
+  // controlBar.appendChild(skipButton);
   uiElements.skipButton = skipButton;
 
   return skipButton;
@@ -369,28 +288,6 @@ function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = Math.floor(seconds % 60);
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-}
-
-/**
- * 获取类别名称
- * @param {string} category 类别
- * @returns {string} 类别名称
- */
-function getCategoryName(category) {
-  const categoryNames = {
-    sponsor: "广告",
-    selfpromo: "自我推广",
-    exclusive_access: "品牌合作",
-    interaction: "互动提醒",
-    intro: "片头",
-    outro: "片尾",
-    preview: "预览/回顾",
-    filler: "闲聊",
-    music_offtopic: "非音乐部分",
-    poi_highlight: "精彩时刻",
-  };
-
-  return categoryNames[category] || category;
 }
 
 /**

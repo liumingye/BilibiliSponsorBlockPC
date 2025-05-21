@@ -4,7 +4,12 @@
  */
 
 import { options } from "./modules/config.js";
-import { getVideoId, waitForElement, waitForConstant } from "./modules/utils.js";
+import {
+  getVideoId,
+  getCId,
+  waitForElement,
+  waitForConstant,
+} from "./modules/utils.js";
 import { getSkipSegments } from "./modules/api.js";
 import {
   initPlayerControl,
@@ -12,7 +17,7 @@ import {
   resetPlayerState,
 } from "./modules/player.js";
 import {
-  initUI,
+  // initUI,
   createPreviewBar,
   createSkipButton,
   createSettingsButton,
@@ -35,7 +40,7 @@ async function init() {
   initStyles();
 
   // 初始化UI
-  initUI();
+  // initUI();
 
   // 加载设置
   loadSettings();
@@ -44,7 +49,7 @@ async function init() {
   observeUrlChange();
 
   // 初始化当前页面
-  await initCurrentPage();
+  // await initCurrentPage();
 
   console.log("BilibiliSponsorBlock: 初始化完成");
 }
@@ -88,12 +93,19 @@ function observeUrlChange() {
       // URL 变化时重新初始化
       setTimeout(() => {
         initCurrentPage();
-      }, 1000);
+      }, 100);
     }
   });
 
   // 开始观察 document 的子树变化
   observer.observe(document, { subtree: true, childList: true });
+}
+
+/**
+ * 判断是否为同一视频
+ */
+function isSameVideo(currentID, targetID) {
+  return currentID && targetID && currentID === targetID;
 }
 
 /**
@@ -112,14 +124,15 @@ async function initCurrentPage() {
 
   try {
     // 获取视频ID
-    const videoId = getVideoId();
-    if (!videoId) {
+    const videoID = getVideoId();
+    const cid = getCId();
+    if (!videoID) {
       console.log("BilibiliSponsorBlock: 未找到视频ID");
       return;
     }
 
-    currentVideoId = videoId;
-    console.log(`BilibiliSponsorBlock: 当前视频ID: ${videoId}`);
+    currentVideoId = videoID;
+    console.log(`BilibiliSponsorBlock: 当前视频ID: ${videoID}`);
 
     // 等待播放器加载
     const player = await waitForElement("video");
@@ -129,7 +142,9 @@ async function initCurrentPage() {
     }
 
     // 获取跳过片段
-    segments = await getSkipSegments(videoId);
+    const temp_segments = await getSkipSegments({ videoID, cid });
+    if (!isSameVideo(getVideoId(), videoID)) return;
+    segments = temp_segments;
     console.log(`BilibiliSponsorBlock: 获取到 ${segments.length} 个片段`);
 
     // 初始化播放器控制
@@ -143,39 +158,42 @@ async function initCurrentPage() {
     }
 
     // 等待控制栏加载
-    const controlBar = await waitForElement(".bpx-player-control-wrap");
-    if (controlBar) {
-      // 创建跳过按钮
-      // createSkipButton(controlBar, () => {
-      //   if (playerControl && playerControl.player) {
-      //     // 查找当前时间后的下一个片段
-      //     const currentTime = playerControl.player.currentTime;
-      //     let nextSegmentEnd = null;
-      //     for (const segment of segments) {
-      //       for (const [start, end] of segment.segment) {
-      //         if (currentTime >= start && currentTime < end) {
-      //           nextSegmentEnd = end;
-      //           break;
-      //         } else if (start > currentTime) {
-      //           // 找到当前时间之后的第一个片段
-      //           if (nextSegmentEnd === null || start < nextSegmentEnd) {
-      //             nextSegmentEnd = end;
-      //           }
-      //           break;
-      //         }
-      //       }
-      //       if (nextSegmentEnd !== null) {
-      //         break;
-      //       }
-      //     }
-      //     if (nextSegmentEnd !== null) {
-      //       playerControl.player.currentTime = nextSegmentEnd;
-      //     }
-      //   }
-      // });
-      // 创建设置按钮
-      // createSettingsButton(controlBar);
-    }
+    // const controlBar = await waitForElement(".bpx-player-control-wrap");
+    // if (controlBar) {
+    //   // 创建跳过按钮
+    //   createSkipButton(controlBar, () => {
+    //     console.log(111)
+    //   });
+    // }
+    //   if (playerControl && playerControl.player) {
+    //     // 查找当前时间后的下一个片段
+    //     const currentTime = playerControl.player.currentTime;
+    //     let nextSegmentEnd = null;
+    //     for (const segment of segments) {
+    //       for (const [start, end] of segment.segment) {
+    //         if (currentTime >= start && currentTime < end) {
+    //           nextSegmentEnd = end;
+    //           break;
+    //         } else if (start > currentTime) {
+    //           // 找到当前时间之后的第一个片段
+    //           if (nextSegmentEnd === null || start < nextSegmentEnd) {
+    //             nextSegmentEnd = end;
+    //           }
+    //           break;
+    //         }
+    //       }
+    //       if (nextSegmentEnd !== null) {
+    //         break;
+    //       }
+    //     }
+    //     if (nextSegmentEnd !== null) {
+    //       playerControl.player.currentTime = nextSegmentEnd;
+    //     }
+    //   }
+    // });
+    // 创建设置按钮
+    // createSettingsButton(controlBar);
+    // }
   } catch (error) {
     console.error("BilibiliSponsorBlock: 初始化页面失败", error);
   }
@@ -201,3 +219,5 @@ function cleanup() {
 
 // 初始化插件
 init();
+
+export {};

@@ -30,15 +30,17 @@ export function addGlobalStyles() {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 36px;
       height: 36px;
-      border-radius: 50%;
+      border-radius: 4px;
       background-color: rgba(0, 0, 0, 0.1);
-      transition: background-color 0.2s;
+      transition: all 0.2s;
+      border: solid 1px #999;
+      padding: 8px 12px;
     }
     
     .sponsorblock-button:hover {
-      background-color: rgba(0, 0, 0, 0.2);
+      background-color: rgba(99, 99, 99, 0.3);
+      border: solid 1px #fff;
     }
     
     /* SponsorBlock 设置面板样式 */

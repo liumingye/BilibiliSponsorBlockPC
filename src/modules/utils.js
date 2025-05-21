@@ -1,6 +1,7 @@
 /**
  * 工具函数模块 - 包含各种辅助函数
  */
+import { categories } from "./config.js";
 
 const XOR_CODE = 23442827791579n;
 // const MASK_CODE = 2251799813685247n;
@@ -96,20 +97,12 @@ export function debounce(func, wait) {
 export function getVideoId() {
   const manifest = window.biliPlayer.getManifest();
   const bvid = manifest.bvid ? manifest.bvid : av2bv(manifest.aid);
-  return bvid;
-  /*
-  const url = window.location.href;
-  const match = url.match(/\/video\/(BV\w+)/);
-  if (match) {
-    return match[1];
-  }
-  
-  const avMatch = url.match(/\/video\/(av\d+)/);
-  if (avMatch) {
-    return av2bv(avMatch[1]);
-  }
-  
-  return null;*/
+  return bvid || "";
+}
+
+export function getCId() {
+  const manifest = window.biliPlayer.getManifest();
+  return manifest.cid || "";
 }
 
 /**
@@ -149,4 +142,13 @@ export async function waitForConstant(constName, time = 1000) {
     }
     await new Promise((resolve) => setTimeout(resolve, time));
   }
+}
+
+/**
+ * 获取类别名称
+ * @param {string} category 类别
+ * @returns {string} 类别名称
+ */
+export function getCategoryName(category) {
+  return categories[category] || category;
 }

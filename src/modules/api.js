@@ -9,19 +9,19 @@ const API_BASE_URL = "https://bsbsb.top/api";
  * @param {string} videoId 视频ID
  * @returns {Promise<Array>} 跳过片段数组
  */
-export async function getSkipSegments(videoId) {
+export async function getSkipSegments(data) {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/skipSegments?videoID=${videoId}`
+      `${API_BASE_URL}/skipSegments?${new URLSearchParams(data).toString()}`
     );
-    
+
     if (!response.ok) {
       if (response.status === 404) {
         return []; // 没有找到片段，返回空数组
       }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Failed to fetch skip segments:", error);
@@ -43,11 +43,11 @@ export async function submitSkipSegment(segmentData) {
       },
       body: JSON.stringify(segmentData),
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Failed to submit skip segment:", error);
@@ -73,7 +73,7 @@ export async function voteOnSegment(uuid, type) {
         type,
       }),
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -91,11 +91,11 @@ export async function voteOnSegment(uuid, type) {
 export async function getSegmentInfo(uuid) {
   try {
     const response = await fetch(`${API_BASE_URL}/segmentInfo?UUID=${uuid}`);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Failed to get segment info:", error);
@@ -111,11 +111,11 @@ export async function getSegmentInfo(uuid) {
 export async function getUserStats(userId) {
   try {
     const response = await fetch(`${API_BASE_URL}/userInfo?userID=${userId}`);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Failed to get user stats:", error);

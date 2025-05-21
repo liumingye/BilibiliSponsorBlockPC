@@ -2,6 +2,19 @@
  * 配置模块 - 包含插件的配置选项
  */
 
+export const categories = {
+  sponsor: "广告",
+  selfpromo: "自我推广",
+  exclusive_access: "品牌合作",
+  interaction: "互动提醒",
+  intro: "片头",
+  outro: "片尾",
+  preview: "预览/回顾",
+  filler: "闲聊",
+  music_offtopic: "非音乐部分",
+  poi_highlight: "精彩时刻",
+};
+
 // 各类型片段的处理方式配置
 export const options = {
   categoryActions: {

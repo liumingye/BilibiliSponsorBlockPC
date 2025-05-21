@@ -5,11 +5,11 @@
 import { options } from "./config.js";
 import { formatTime } from "./utils.js";
 import { createSkipButton } from "./ui.js";
-import { waitForElement } from "./utils.js";
+import { waitForElement, getCategoryName } from "./utils.js";
 
 // 存储当前处理的片段信息
 let currentSegment = null;
-let skipNoticeTimeout = null;
+// let skipNoticeTimeout = null;
 let muteState = {
   wasMuted: false,
   originalVolume: 1,
@@ -160,16 +160,16 @@ export function resetPlayerState(player) {
   currentSegment = null;
 
   // 清除通知超时
-  if (skipNoticeTimeout) {
-    clearTimeout(skipNoticeTimeout);
-    skipNoticeTimeout = null;
-  }
+  // if (skipNoticeTimeout) {
+  //   clearTimeout(skipNoticeTimeout);
+  //   skipNoticeTimeout = null;
+  // }
 
   // 移除通知元素
-  const notice = document.querySelector(".sponsorblock-notice");
-  if (notice) {
-    notice.remove();
-  }
+  // const notice = document.querySelector(".sponsorblock-notice");
+  // if (notice) {
+  //   notice.remove();
+  // }
 }
 
 /**
@@ -244,37 +244,15 @@ function showNotice(message) {
 
   document.body.appendChild(notice);
 
-  // 3秒后淡出
-  skipNoticeTimeout = setTimeout(() => {
+  // 2秒后淡出
+  setTimeout(() => {
     notice.style.opacity = "0";
     setTimeout(() => {
       if (notice.parentNode) {
         notice.remove();
       }
     }, 300);
-  }, 3000);
-}
-
-/**
- * 获取类别名称
- * @param {string} category 类别
- * @returns {string} 类别名称
- */
-function getCategoryName(category) {
-  const categoryNames = {
-    sponsor: "广告",
-    selfpromo: "自我推广",
-    exclusive_access: "品牌合作",
-    interaction: "互动提醒",
-    intro: "片头",
-    outro: "片尾",
-    preview: "预览/回顾",
-    filler: "闲聊",
-    music_offtopic: "非音乐部分",
-    poi_highlight: "精彩时刻",
-  };
-
-  return categoryNames[category] || category;
+  }, 2000);
 }
 
 /**
