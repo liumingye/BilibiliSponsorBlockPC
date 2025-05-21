@@ -1,0 +1,297 @@
+/**
+ * 播放器交互模块 - 处理与Bilibili播放器的交互
+ */
+
+import { options } from "./config.js";
+import { formatTime } from "./utils.js";
+import { createSkipButton } from "./ui.js";
+import { waitForElement } from "./utils.js";
+
+// 存储当前处理的片段信息
+let currentSegment = null;
+let skipNoticeTimeout = null;
+let muteState = {
+  wasMuted: false,
+  originalVolume: 1,
+  isMuted: false,
+};
+
+/**
+ * 初始化播放器控制
+ * @param {HTMLElement} player 播放器元素
+ * @param {Array} segments 片段数组
+ * @returns {Object} 播放器控制对象
+ */
+export function initPlayerControl(player, segments) {
+  // 存储播放器和片段信息
+  const playerControl = {
+    player,
+    segments,
+    timeUpdateHandler: null,
+    isProcessing: false,
+  };
+
+  // 设置时间更新处理函数
+  playerControl.timeUpdateHandler = () => handleTimeUpdate(playerControl);
+  player.addEventListener("timeupdate", playerControl.timeUpdateHandler);
+
+  return playerControl;
+}
+
+/**
+ * 处理播放器时间更新事件
+ * @param {Object} playerControl 播放器控制对象
+ */
+function handleTimeUpdate(playerControl) {
+  const { player, segments } = playerControl;
+
+  if (playerControl.isProcessing || !segments || segments.length === 0) return;
+
+  playerControl.isProcessing = true;
+
+  try {
+    const currentTime = player.currentTime;
+
+    // 检查是否在任何片段内
+    for (const info of segments) {
+      // console.log(info)
+      //   for (const part of segment.segment) {
+      const [startTime, endTime] = info.segment;
+
+      // 如果当前时间在片段范围内
+      // if (currentTime >= startTime && currentTime < endTime) {
+      if (currentTime >= startTime && currentTime < startTime + 1) {
+        processSegment(player, info, startTime, endTime);
+        break;
+      } else if (
+        currentSegment &&
+        currentSegment.uuid === info.UUID &&
+        currentTime >= endTime
+      ) {
+        // 如果已经通过了片段结束时间，恢复状态
+        resetPlayerState(player);
+      }
+      //   }
+    }
+  } finally {
+    playerControl.isProcessing = false;
+  }
+}
+
+/**
+ * 处理片段
+ * @param {HTMLElement} player 播放器元素
+ * @param {Object} segment 片段信息
+ * @param {number} startTime 开始时间
+ * @param {number} endTime 结束时间
+ */
+async function processSegment(player, segment, startTime, endTime) {
+  // 如果已经在处理同一个片段，则跳过
+  if (currentSegment && currentSegment.uuid === segment.UUID) return;
+
+  currentSegment = {
+    uuid: segment.UUID,
+    category: segment.category,
+    startTime,
+    endTime,
+  };
+
+  const action = options.categoryActions[segment.category] || "skip";
+
+  switch (action) {
+    case "skip":
+      skipSegment(player, endTime);
+      showSkipNotice(segment.category, startTime, endTime);
+      break;
+    case "mute":
+      muteSegment(player);
+      showMuteNotice(segment.category, startTime, endTime);
+      break;
+    case "full":
+      // 创建跳过按钮
+      const controlBar = await waitForElement(".bpx-player-control-wrap");
+      const skipButton = createSkipButton(controlBar, () => {
+        skipSegment(player, endTime);
+        skipButton.remove();
+      });
+      break;
+    case "overlay":
+      showOverlayNotice(segment.category, startTime, endTime);
+      break;
+    default:
+      // 默认不做任何处理
+      break;
+  }
+}
+
+/**
+ * 跳过片段
+ * @param {HTMLElement} player 播放器元素
+ * @param {number} endTime 结束时间
+ */
+function skipSegment(player, endTime) {
+  player.currentTime = endTime;
+}
+
+/**
+ * 静音片段
+ * @param {HTMLElement} player 播放器元素
+ */
+function muteSegment(player) {
+  if (!muteState.isMuted) {
+    muteState.wasMuted = player.muted;
+    muteState.originalVolume = player.volume;
+    player.muted = true;
+    muteState.isMuted = true;
+  }
+}
+
+/**
+ * 重置播放器状态
+ * @param {HTMLElement} player 播放器元素
+ */
+export function resetPlayerState(player) {
+  if (muteState.isMuted) {
+    player.muted = muteState.wasMuted;
+    player.volume = muteState.originalVolume;
+    muteState.isMuted = false;
+  }
+
+  currentSegment = null;
+
+  // 清除通知超时
+  if (skipNoticeTimeout) {
+    clearTimeout(skipNoticeTimeout);
+    skipNoticeTimeout = null;
+  }
+
+  // 移除通知元素
+  const notice = document.querySelector(".sponsorblock-notice");
+  if (notice) {
+    notice.remove();
+  }
+}
+
+/**
+ * 显示跳过通知
+ * @param {string} category 类别
+ * @param {number} startTime 开始时间
+ * @param {number} endTime 结束时间
+ */
+function showSkipNotice(category, startTime, endTime) {
+  showNotice(
+    `已跳过 ${getCategoryName(category)} (${formatTime(startTime)}-${formatTime(
+      endTime
+    )})`
+  );
+}
+
+/**
+ * 显示静音通知
+ * @param {string} category 类别
+ * @param {number} startTime 开始时间
+ * @param {number} endTime 结束时间
+ */
+function showMuteNotice(category, startTime, endTime) {
+  showNotice(
+    `已静音 ${getCategoryName(category)} (${formatTime(startTime)}-${formatTime(
+      endTime
+    )})`
+  );
+}
+
+/**
+ * 显示覆盖通知
+ * @param {string} category 类别
+ * @param {number} startTime 开始时间
+ * @param {number} endTime 结束时间
+ */
+function showOverlayNotice(category, startTime, endTime) {
+  showNotice(
+    `${getCategoryName(category)} (${formatTime(startTime)}-${formatTime(
+      endTime
+    )})`
+  );
+}
+
+/**
+ * 显示通知
+ * @param {string} message 消息内容
+ */
+function showNotice(message) {
+  // 移除现有通知
+  const existingNotice = document.querySelector(".sponsorblock-notice");
+  if (existingNotice) {
+    existingNotice.remove();
+  }
+
+  // 创建新通知
+  const notice = document.createElement("div");
+  notice.className = "sponsorblock-notice";
+  notice.textContent = message;
+  notice.style.cssText = `
+    position: absolute;
+    bottom: 60px;
+    left: 20px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    z-index: 100;
+    font-size: 14px;
+    transition: opacity 0.3s;
+  `;
+
+  document.body.appendChild(notice);
+
+  // 3秒后淡出
+  skipNoticeTimeout = setTimeout(() => {
+    notice.style.opacity = "0";
+    setTimeout(() => {
+      if (notice.parentNode) {
+        notice.remove();
+      }
+    }, 300);
+  }, 3000);
+}
+
+/**
+ * 获取类别名称
+ * @param {string} category 类别
+ * @returns {string} 类别名称
+ */
+function getCategoryName(category) {
+  const categoryNames = {
+    sponsor: "广告",
+    selfpromo: "自我推广",
+    exclusive_access: "品牌合作",
+    interaction: "互动提醒",
+    intro: "片头",
+    outro: "片尾",
+    preview: "预览/回顾",
+    filler: "闲聊",
+    music_offtopic: "非音乐部分",
+    poi_highlight: "精彩时刻",
+  };
+
+  return categoryNames[category] || category;
+}
+
+/**
+ * 清理播放器控制
+ * @param {Object} playerControl 播放器控制对象
+ */
+export function cleanupPlayerControl(playerControl) {
+  if (
+    playerControl &&
+    playerControl.player &&
+    playerControl.timeUpdateHandler
+  ) {
+    playerControl.player.removeEventListener(
+      "timeupdate",
+      playerControl.timeUpdateHandler
+    );
+  }
+
+  resetPlayerState(playerControl.player);
+}

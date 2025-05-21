@@ -2,6 +2,8 @@
   "id": "BilibiliSponsorBlock",
   "name": "Bilibili SponsorBlock",
   "injects": {
+    "main": "./src/main.js",
+    "preload": "./src/preload.js",
     "renderer": "./src/renderer.js"
   }
 }

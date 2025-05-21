@@ -1,203 +1,203 @@
-console.log("Bilibili SponsorBlock");
+/**
+ * BilibiliSponsorBlock 插件入口文件
+ * 用于跳过或静音视频中的广告、自我推广等内容
+ */
 
-const options = {
-  categoryActions: {
-    sponsor: "skip", // 广告
-    selfpromo: "mute", // 无偿/自我推广
-    exclusive_access: "full", // 柔性推广/品牌合作
-    interaction: "mute", // 三连/订阅提醒
-    intro: "mute", // 过场/开场动画
-    outro: "mute", // 鸣谢/结束画面
-    preview: "overlay", // 回顾/概要
-    filler: "disabled", // 离题闲聊/玩笑
-    music_offtopic: "skip", // 音乐:非音乐部分
-    poi_highlight: "mute", // 精彩时刻/重点
-  },
-};
+import { options } from "./modules/config.js";
+import { getVideoId, waitForElement, waitForConstant } from "./modules/utils.js";
+import { getSkipSegments } from "./modules/api.js";
+import {
+  initPlayerControl,
+  cleanupPlayerControl,
+  resetPlayerState,
+} from "./modules/player.js";
+import {
+  initUI,
+  createPreviewBar,
+  createSkipButton,
+  createSettingsButton,
+  cleanupUI,
+} from "./modules/ui.js";
+import { initStyles } from "./modules/styles.js";
 
-const XOR_CODE = 23442827791579n;
-const MASK_CODE = 2251799813685247n;
-const MAX_AID = 1n << 51n;
-const BASE = 58n;
-const data = "FcwAPNKTMug3GV5Lj7EJnHpWsx4tb8haYeviqBz6rkCy12mUSDQX9RdoZf";
-function av2bv(aid) {
-  const bytes = ["B", "V", "1", "0", "0", "0", "0", "0", "0", "0", "0", "0"];
-  let bvIndex = bytes.length - 1;
-  let tmp = (MAX_AID | BigInt(aid)) ^ XOR_CODE;
-  while (tmp > 0) {
-    bytes[bvIndex] = data[Number(tmp % BigInt(BASE))];
-    tmp = tmp / BASE;
-    bvIndex -= 1;
-  }
-  [bytes[3], bytes[9]] = [bytes[9], bytes[3]];
-  [bytes[4], bytes[7]] = [bytes[7], bytes[4]];
-  return bytes.join("");
+// 存储全局状态
+let playerControl = null;
+let segments = [];
+let currentVideoId = null;
+
+/**
+ * 初始化插件
+ */
+async function init() {
+  console.log("BilibiliSponsorBlock: 初始化中...");
+
+  // 初始化样式
+  initStyles();
+
+  // 初始化UI
+  initUI();
+
+  // 加载设置
+  loadSettings();
+
+  // 监听URL变化
+  observeUrlChange();
+
+  // 初始化当前页面
+  await initCurrentPage();
+
+  console.log("BilibiliSponsorBlock: 初始化完成");
 }
 
-const getSkipSegments = async () => {
-  const manifest = window.biliPlayer.getManifest();
-  const bvid = manifest.bvid ? manifest.bvid : av2bv(manifest.aid);
-  const data = await window.fetch(
-    `https://bsbsb.top/api/skipSegments?videoID=${bvid}&cid=${manifest.cid}`
-  );
-  if (data.status == 200) {
-    const json = await data.json();
-    return json;
-  }
-  return [];
-};
+/**
+ * 加载设置
+ */
+function loadSettings() {
+  try {
+    const savedOptions = localStorage.getItem("sponsorBlockOptions");
+    if (savedOptions) {
+      const parsedOptions = JSON.parse(savedOptions);
 
-// 循环等待window变量出现函数
-const waitConst = async (constName, time = 1000) => {
-  while (true) {
-    if (window[constName]) {
-      return window[constName];
+      // 合并设置
+      if (parsedOptions.categoryActions) {
+        options.categoryActions = {
+          ...options.categoryActions,
+          ...parsedOptions.categoryActions,
+        };
+      }
     }
-    await new Promise((resolve) => setTimeout(resolve, time));
+  } catch (error) {
+    console.error("BilibiliSponsorBlock: 加载设置失败", error);
   }
-};
 
-// 循环等待dom出现函数
-const waitDom = async (dom, time = 1000) => {
-  while (true) {
-    if (document.querySelector(dom)) {
-      return document.querySelector(dom);
+  // 将设置暴露给全局
+  window.sponsorBlockOptions = options;
+}
+
+/**
+ * 监听URL变化
+ */
+function observeUrlChange() {
+  let lastUrl = window.location.href;
+
+  // 创建一个新的 MutationObserver 实例
+  const observer = new MutationObserver(() => {
+    if (window.location.href !== lastUrl) {
+      lastUrl = window.location.href;
+
+      // URL 变化时重新初始化
+      setTimeout(() => {
+        initCurrentPage();
+      }, 1000);
     }
-    await new Promise((resolve) => setTimeout(resolve, time));
-  }
-};
-
-window.onload = async () => {
-  if (location.pathname === "/player.html") {
-    await waitConst("biliPlayer");
-    console.log("SponsorBlock onload");
-    let segments = [];
-
-    const _getSkipSegments = async () => {
-      segments = [];
-      segments = await getSkipSegments();
-      console.log("获取到的片段", segments);
-      updatePreviewBar(segments);
-    };
-
-    _getSkipSegments();
-
-    window.biliPlayer.on("Player_Prepared", _getSkipSegments);
-    window.biliPlayer.on("Player_TimeUpdate", () => {
-      if (segments.length == 0) return;
-      segments.forEach(({ segment, videoDuration, category }) => {
-        const [start, end] = segment;
-
-        const startTime = end ? Math.min(videoDuration, start) : start;
-        const endTime = Math.min(videoDuration, end);
-
-        const currentTime = window.biliPlayer.getCurrentTime();
-        if (
-          currentTime >= parseInt(startTime) &&
-          currentTime <= parseInt(startTime) + 1
-        ) {
-          if (options.categoryActions[category] === "skip") {
-            window.biliPlayer.seek(endTime);
-            console.log(`skip ${category} segment at ${currentTime}s`);
-          }
-        }
-      });
-    });
-  }
-};
-
-const decimalTimeConverter = (value, videoDuration, isTime) => {
-  if (isTime) {
-    return Math.min(1, value / videoDuration);
-  } else {
-    return Math.max(0, value * videoDuration);
-  }
-};
-
-const timeToDecimal = (time, videoDuration) => {
-  return decimalTimeConverter(time, videoDuration, true);
-};
-
-const timeToPercentage = (time, videoDuration) => {
-  return `${timeToDecimal(time, videoDuration) * 100}%`;
-};
-
-const timeToRightPercentage = (time, videoDuration) => {
-  return `${(1 - timeToDecimal(time, videoDuration)) * 100}%`;
-};
-
-const updatePreviewBar = async (segments) => {
-  await waitDom(".bpx-player-progress");
-  document.querySelector(".previewbar")?.remove();
-  const container = document.createElement("ul");
-  container.id = "previewbar";
-  const bars = segments.map(({ segment, videoDuration, category }) => {
-    const [start, end] = segment;
-    const bar = document.createElement("li");
-    bar.classList.add("previewbar");
-    bar.setAttribute("sponsorblock-category", category);
-    bar.style.backgroundColor = `var(--sb-category-${category})`;
-    bar.style.opacity = "0.7";
-    bar.style.position = "absolute";
-    const duration = Math.min(end, videoDuration) - start;
-    const startTime = end ? Math.min(videoDuration, start) : start;
-    const endTime = Math.min(videoDuration, end);
-    bar.style.left = timeToPercentage(startTime, videoDuration);
-    if (duration > 0) {
-      bar.style.right = timeToRightPercentage(endTime, videoDuration);
-    }
-    return bar;
   });
-  bars.forEach((bar) => container.appendChild(bar));
-  document
-    .querySelector(".bpx-player-progress")
-    .insertAdjacentElement("afterbegin", container);
-};
 
-// head插入style
-const style = document.createElement("style");
-style.innerHTML = `
-:root {
-    --sb-category-sponsor: #00d400;--darkreader-bg--sb-category-sponsor: #00d400;
-    --sb-category-preview-sponsor: #007800;--darkreader-bg--sb-category-preview-sponsor: #007800;
-    --sb-category-selfpromo: #ffff00;--darkreader-bg--sb-category-selfpromo: #ffff00;
-    --sb-category-preview-selfpromo: #bfbf35;--darkreader-bg--sb-category-preview-selfpromo: #bfbf35;
-    --sb-category-exclusive_access: #008a5c;--darkreader-bg--sb-category-exclusive_access: #008a5c;
-    --sb-category-interaction: #cc00ff;--darkreader-bg--sb-category-interaction: #cc00ff;
-    --sb-category-preview-interaction: #6c0087;--darkreader-bg--sb-category-preview-interaction: #6c0087;
-    --sb-category-intro: #00ffff;--darkreader-bg--sb-category-intro: #00ffff;
-    --sb-category-preview-intro: #008080;--darkreader-bg--sb-category-preview-intro: #008080;
-    --sb-category-outro: #0202ed;--darkreader-bg--sb-category-outro: #0202ed;
-    --sb-category-preview-outro: #000070;--darkreader-bg--sb-category-preview-outro: #000070;
-    --sb-category-preview: #008fd6;--darkreader-bg--sb-category-preview: #008fd6;
-    --sb-category-preview-preview: #005799;--darkreader-bg--sb-category-preview-preview: #005799;
-    --sb-category-music_offtopic: #ff9900;--darkreader-bg--sb-category-music_offtopic: #ff9900;
-    --sb-category-preview-music_offtopic: #a6634a;--darkreader-bg--sb-category-preview-music_offtopic: #a6634a;
-    --sb-category-poi_highlight: #ff1684;--darkreader-bg--sb-category-poi_highlight: #ff1684;
-    --sb-category-preview-poi_highlight: #9b044c;--darkreader-bg--sb-category-preview-poi_highlight: #9b044c;
-    --sb-category-filler: #7300FF;--darkreader-bg--sb-category-filler: #7300FF;
-    --sb-category-preview-filler: #2E0066;--darkreader-bg--sb-category-preview-filler: #2E0066;
-    --sb-category-dynamicSponsor_sponsor: #007800;--darkreader-bg--sb-category-dynamicSponsor_sponsor: #007800;
-    --sb-category-dynamicSponsor_forward_sponsor: #bfbf35;--darkreader-bg--sb-category-dynamicSponsor_forward_sponsor: #bfbf35;
-    --sb-category-dynamicSponsor_suspicion_sponsor: #a6634a;--darkreader-bg--sb-category-dynamicSponsor_suspicion_sponsor: #a6634a;
+  // 开始观察 document 的子树变化
+  observer.observe(document, { subtree: true, childList: true });
 }
 
-#previewbar {
-	overflow: hidden;
-	padding: 0;
-	margin: 0;
-	position: absolute;
-	width: 100%;
-	height: 100%;
-	z-index: 1;
-	transition: transform 0.1s cubic-bezier(0, 0, 0.2, 1);
+/**
+ * 初始化当前页面
+ */
+async function initCurrentPage() {
+  // 清理之前的状态
+  cleanup();
+
+  // 检查是否在视频页面
+  if (!window.location.href.includes("/player.html")) {
+    return;
+  }
+
+  await waitForConstant("biliPlayer");
+
+  try {
+    // 获取视频ID
+    const videoId = getVideoId();
+    if (!videoId) {
+      console.log("BilibiliSponsorBlock: 未找到视频ID");
+      return;
+    }
+
+    currentVideoId = videoId;
+    console.log(`BilibiliSponsorBlock: 当前视频ID: ${videoId}`);
+
+    // 等待播放器加载
+    const player = await waitForElement("video");
+    if (!player) {
+      console.log("BilibiliSponsorBlock: 未找到播放器");
+      return;
+    }
+
+    // 获取跳过片段
+    segments = await getSkipSegments(videoId);
+    console.log(`BilibiliSponsorBlock: 获取到 ${segments.length} 个片段`);
+
+    // 初始化播放器控制
+    playerControl = initPlayerControl(player, segments);
+
+    // 等待进度条加载
+    const progressBar = await waitForElement(".bpx-player-progress");
+    if (progressBar) {
+      // 创建预览条
+      createPreviewBar(progressBar, segments);
+    }
+
+    // 等待控制栏加载
+    const controlBar = await waitForElement(".bpx-player-control-wrap");
+    if (controlBar) {
+      // 创建跳过按钮
+      // createSkipButton(controlBar, () => {
+      //   if (playerControl && playerControl.player) {
+      //     // 查找当前时间后的下一个片段
+      //     const currentTime = playerControl.player.currentTime;
+      //     let nextSegmentEnd = null;
+      //     for (const segment of segments) {
+      //       for (const [start, end] of segment.segment) {
+      //         if (currentTime >= start && currentTime < end) {
+      //           nextSegmentEnd = end;
+      //           break;
+      //         } else if (start > currentTime) {
+      //           // 找到当前时间之后的第一个片段
+      //           if (nextSegmentEnd === null || start < nextSegmentEnd) {
+      //             nextSegmentEnd = end;
+      //           }
+      //           break;
+      //         }
+      //       }
+      //       if (nextSegmentEnd !== null) {
+      //         break;
+      //       }
+      //     }
+      //     if (nextSegmentEnd !== null) {
+      //       playerControl.player.currentTime = nextSegmentEnd;
+      //     }
+      //   }
+      // });
+      // 创建设置按钮
+      // createSettingsButton(controlBar);
+    }
+  } catch (error) {
+    console.error("BilibiliSponsorBlock: 初始化页面失败", error);
+  }
 }
 
-.previewbar {
-	display: inline-block;
-	height: 100%;
-	min-width: 1px;
-}
-`;
+/**
+ * 清理资源
+ */
+function cleanup() {
+  // 清理播放器控制
+  if (playerControl) {
+    cleanupPlayerControl(playerControl);
+    playerControl = null;
+  }
 
-document.head.appendChild(style);
+  // 清理UI元素
+  cleanupUI();
+
+  // 重置状态
+  segments = [];
+  currentVideoId = null;
+}
+
+// 初始化插件
+init();
