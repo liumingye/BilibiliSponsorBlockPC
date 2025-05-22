@@ -18,7 +18,7 @@ const uiElements = {
  * @param {Array} segments 片段数组
  * @returns {HTMLElement} 预览条元素
  */
-export function createPreviewBar(progressBar, segments) {
+export function createPreviewBar(playerControl) {
   // 如果已存在，则移除
   if (uiElements.previewBar) {
     uiElements.previewBar.remove();
@@ -26,11 +26,11 @@ export function createPreviewBar(progressBar, segments) {
 
   // 创建预览条容器
   const previewBar = createElement("div", { id: "previewbar" });
-  progressBar.appendChild(previewBar);
+  playerControl.progressBar.appendChild(previewBar);
   uiElements.previewBar = previewBar;
 
   // 更新预览条
-  updatePreviewBar(previewBar, segments);
+  updatePreviewBar(previewBar, playerControl);
 
   return previewBar;
 }
@@ -40,14 +40,16 @@ export function createPreviewBar(progressBar, segments) {
  * @param {HTMLElement} previewBar 预览条元素
  * @param {Array} segments 片段数组
  */
-export function updatePreviewBar(previewBar, segments) {
+export function updatePreviewBar(previewBar, playerControl) {
   // 清空预览条
   previewBar.innerHTML = "";
+
+  const { segments, video } = playerControl;
 
   if (!segments || segments.length === 0) return;
 
   // 获取视频总时长
-  const videoDuration = document.querySelector("video")?.duration || 0;
+  const videoDuration = video.duration || 0;
   if (!videoDuration) return;
   console.log(segments);
   // 为每个片段创建预览块

@@ -9,6 +9,7 @@ import {
   getCId,
   waitForElement,
   waitForConstant,
+  waitForEqual,
 } from "./modules/utils.js";
 import { getSkipSegments } from "./modules/api.js";
 import {
@@ -48,6 +49,9 @@ async function init() {
   // 监听URL变化
   observeUrlChange();
 
+  // 监听精选视频切换
+  observeSelectedPlayers();
+
   // 初始化当前页面
   // await initCurrentPage();
 
@@ -77,6 +81,29 @@ function loadSettings() {
 
   // 将设置暴露给全局
   window.sponsorBlockOptions = options;
+}
+
+async function observeSelectedPlayers() {
+  if (!window.location.href.includes("/index.html")) return;
+
+  await waitForConstant("selectedPlayers");
+
+  await waitForEqual(() => {
+    return Object.keys(window.selectedPlayers).length;
+  }, 5);
+
+  for (const key in window.selectedPlayers) {
+    if (key == "activePlayer") continue;
+    if (Object.prototype.hasOwnProperty.call(window.selectedPlayers, key)) {
+      const player = window.selectedPlayers[key];
+      player.on("Player_LoadedMetadata", () => {
+        // console.log("Player_LoadedMetadata");
+        // setTimeout(() => {
+        initCurrentPage();
+        // }, 100);
+      });
+    }
+  }
 }
 
 /**
@@ -116,7 +143,10 @@ async function initCurrentPage() {
   cleanup();
 
   // 检查是否在视频页面
-  if (!window.location.href.includes("/player.html")) {
+  if (
+    !window.location.href.includes("/player.html") &&
+    !window.location.href.includes("/index.html#/page/selected")
+  ) {
     return;
   }
 
@@ -135,7 +165,7 @@ async function initCurrentPage() {
     console.log(`BilibiliSponsorBlock: 当前视频ID: ${videoID}`);
 
     // 等待播放器加载
-    const player = await waitForElement("video");
+    const player = window.biliPlayer;
     if (!player) {
       console.log("BilibiliSponsorBlock: 未找到播放器");
       return;
@@ -151,10 +181,22 @@ async function initCurrentPage() {
     playerControl = initPlayerControl(player, segments);
 
     // 等待进度条加载
-    const progressBar = await waitForElement(".bpx-player-progress");
+    let progressBar;
+    if (window.location.href.includes("/index.html#/page/selected")) {
+      progressBar = await waitForElement(
+        `.app_selected--item[data-cid="${
+          player.getManifest().cid
+        }"] .bpx-player-progress`
+      );
+    } else {
+      progressBar = await waitForElement(".bpx-player-progress");
+    }
+
+    playerControl.progressBar = progressBar;
+
     if (progressBar) {
       // 创建预览条
-      createPreviewBar(progressBar, segments);
+      createPreviewBar(playerControl);
     }
 
     // 等待控制栏加载
@@ -219,5 +261,3 @@ function cleanup() {
 
 // 初始化插件
 init();
-
-export {};

@@ -144,6 +144,14 @@ export async function waitForConstant(constName, time = 1000) {
   }
 }
 
+// 循环等待变量等于指定数
+export async function waitForEqual(variable, value, time = 1000) {
+  while (true) {
+    if (variable() === value) return variable;
+    await new Promise((resolve) => setTimeout(resolve, time));
+  }
+}
+
 /**
  * 获取类别名称
  * @param {string} category 类别

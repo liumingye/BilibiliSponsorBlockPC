@@ -24,7 +24,7 @@ let muteState = {
  */
 export function initPlayerControl(player, segments) {
   // 存储播放器和片段信息
-  const playerControl = {
+  let playerControl = {
     player,
     segments,
     timeUpdateHandler: null,
@@ -33,7 +33,14 @@ export function initPlayerControl(player, segments) {
 
   // 设置时间更新处理函数
   playerControl.timeUpdateHandler = () => handleTimeUpdate(playerControl);
-  player.addEventListener("timeupdate", playerControl.timeUpdateHandler);
+
+  const video = player.getElements().container.querySelector("video");
+
+  video.addEventListener("timeupdate", playerControl.timeUpdateHandler);
+
+  playerControl.video = video;
+
+  console.log("playerControl", playerControl);
 
   return playerControl;
 }
@@ -43,14 +50,16 @@ export function initPlayerControl(player, segments) {
  * @param {Object} playerControl 播放器控制对象
  */
 function handleTimeUpdate(playerControl) {
-  const { player, segments } = playerControl;
+  const { player, segments, video } = playerControl;
+
+  // console.log(segments);
 
   if (playerControl.isProcessing || !segments || segments.length === 0) return;
 
   playerControl.isProcessing = true;
 
   try {
-    const currentTime = player.currentTime;
+    const currentTime = video.currentTime;
 
     // 检查是否在任何片段内
     for (const info of segments) {
@@ -60,8 +69,9 @@ function handleTimeUpdate(playerControl) {
 
       // 如果当前时间在片段范围内
       // if (currentTime >= startTime && currentTime < endTime) {
+      // console.log(currentTime);
       if (currentTime >= startTime && currentTime < startTime + 1) {
-        processSegment(player, info, startTime, endTime);
+        processSegment(video, info, startTime, endTime);
         break;
       } else if (
         currentSegment &&
@@ -69,7 +79,7 @@ function handleTimeUpdate(playerControl) {
         currentTime >= endTime
       ) {
         // 如果已经通过了片段结束时间，恢复状态
-        resetPlayerState(player);
+        resetPlayerState(video);
       }
       //   }
     }
@@ -237,12 +247,18 @@ function showNotice(message) {
     color: white;
     padding: 8px 12px;
     border-radius: 4px;
-    z-index: 100;
+    z-index: 99999;
     font-size: 14px;
     transition: opacity 0.3s;
   `;
 
-  document.body.appendChild(notice);
+  if (location.href.includes("/index.html#/page/selected")) {
+    parent = document.querySelector(".app_selected--wrapper");
+  } else {
+    parent = document.body;
+  }
+
+  parent?.appendChild(notice);
 
   // 2秒后淡出
   setTimeout(() => {
@@ -260,16 +276,12 @@ function showNotice(message) {
  * @param {Object} playerControl 播放器控制对象
  */
 export function cleanupPlayerControl(playerControl) {
-  if (
-    playerControl &&
-    playerControl.player &&
-    playerControl.timeUpdateHandler
-  ) {
-    playerControl.player.removeEventListener(
+  if (playerControl && playerControl.video && playerControl.timeUpdateHandler) {
+    playerControl.video.removeEventListener(
       "timeupdate",
       playerControl.timeUpdateHandler
     );
   }
 
-  resetPlayerState(playerControl.player);
+  resetPlayerState(playerControl.video);
 }
