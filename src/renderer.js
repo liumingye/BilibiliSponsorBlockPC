@@ -88,22 +88,20 @@ async function observeSelectedPlayers() {
 
   await waitForConstant("selectedPlayers");
 
-  await waitForEqual(() => {
-    return Object.keys(window.selectedPlayers).length;
-  }, 5);
-
-  for (const key in window.selectedPlayers) {
-    if (key == "activePlayer") continue;
-    if (Object.prototype.hasOwnProperty.call(window.selectedPlayers, key)) {
-      const player = window.selectedPlayers[key];
-      player.on("Player_LoadedMetadata", () => {
-        // console.log("Player_LoadedMetadata");
-        // setTimeout(() => {
+  // 监控selectedPlayers更改
+  let lastValue = window.selectedPlayers.activePlayer;
+  const handler = {
+    set(target, prop, value) {
+      if (prop === "activePlayer") {
+        // callback(value, lastValue);
+        // console.log('selectedPlayers 更改')
         initCurrentPage();
-        // }, 100);
-      });
-    }
-  }
+        lastValue = value;
+      }
+      return Reflect.set(...arguments);
+    },
+  };
+  window.selectedPlayers = new Proxy(window.selectedPlayers, handler);
 }
 
 /**
