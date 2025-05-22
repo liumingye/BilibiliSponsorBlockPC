@@ -5,12 +5,47 @@
 import { createElement, getCategoryName } from "./utils.js";
 
 // 存储UI元素引用
-const uiElements = {
+export const uiElements = {
+  // 哔哩哔哩播放器UI
   previewBar: null,
   skipButton: null,
+  // 程序UI
   settingsButton: null,
   settingsPanel: null,
 };
+
+/**
+ * 创建跳过按钮
+ * @param {HTMLElement} controlBar 控制栏元素
+ * @param {Function} onSkipClick 点击回调
+ * @returns {HTMLElement} 跳过按钮元素
+ */
+export function createSkipButton(onSkipClick) {
+  // 如果已存在，则移除
+  if (uiElements.skipButton) {
+    uiElements.skipButton.remove();
+  }
+
+  const skipButton = document.createElement("div");
+  skipButton.className = "sponsorblock-button";
+  skipButton.textContent = "跳过当前片段";
+  skipButton.style.cssText = `
+    position: absolute;
+    bottom: 80px;
+    left: 20px;
+    z-index: 100;
+  `;
+
+  skipButton.addEventListener("click", onSkipClick);
+
+  // 插入到控制栏
+  document
+    .querySelector(".app_selected--wrapper,.app_player--player")
+    ?.appendChild(skipButton);
+  uiElements.skipButton = skipButton;
+
+  return skipButton;
+}
 
 /**
  * 创建进度条预览

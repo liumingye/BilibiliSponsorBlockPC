@@ -5,10 +5,10 @@
 import { options } from "./config.js";
 import { formatTime } from "./utils.js";
 import { getCategoryName } from "./utils.js";
+import { createSkipButton, uiElements } from "./ui.js";
 
 // 存储当前处理的片段信息
 let currentSegment = null;
-// let skipNoticeTimeout = null;
 let muteState = {
   wasMuted: false,
   originalVolume: 1,
@@ -66,15 +66,14 @@ function handleTimeUpdate(playerControl) {
       const [startTime, endTime] = info.segment;
 
       // 如果当前时间在片段范围内
-      // if (currentTime >= startTime && currentTime < endTime) {
-      // console.log(currentTime);
-      if (currentTime >= startTime && currentTime < startTime + 1) {
-        processSegment(video, info, startTime, endTime);
+      if (currentTime >= startTime && currentTime < endTime) {
+        // if (currentTime >= startTime && currentTime < startTime + 1) {
+        processSegment(video, info, startTime, endTime, currentTime);
         break;
       } else if (
         currentSegment &&
         currentSegment.uuid === info.UUID &&
-        currentTime >= endTime
+        (currentTime >= endTime || currentTime < startTime)
       ) {
         // 如果已经通过了片段结束时间，恢复状态
         resetPlayerState(video);
@@ -92,7 +91,13 @@ function handleTimeUpdate(playerControl) {
  * @param {number} startTime 开始时间
  * @param {number} endTime 结束时间
  */
-async function processSegment(player, segment, startTime, endTime) {
+async function processSegment(
+  player,
+  segment,
+  startTime,
+  endTime,
+  currentTime
+) {
   // 如果已经在处理同一个片段，则跳过
   if (currentSegment && currentSegment.uuid === segment.UUID) return;
 
@@ -109,8 +114,17 @@ async function processSegment(player, segment, startTime, endTime) {
 
   switch (action) {
     case "skip":
-      skipSegment(player, endTime);
-      showSkipNotice(segment.category, startTime, endTime);
+      if (currentTime < startTime + 1) {
+        // 在片段开始
+        skipSegment(player, endTime);
+        showSkipNotice(segment.category, startTime, endTime);
+      } else {
+        // 在片段内
+        const skipButton = createSkipButton(() => {
+          skipSegment(player, endTime);
+          skipButton.remove();
+        });
+      }
       break;
     case "mute":
       muteSegment(player);
@@ -156,22 +170,22 @@ function muteSegment(player) {
 
 /**
  * 重置播放器状态
- * @param {HTMLElement} player 播放器元素
+ * @param {HTMLElement} video 播放器元素
  */
-export function resetPlayerState(player) {
+export function resetPlayerState(video) {
+  // 恢复音量和静音状态
   if (muteState.isMuted) {
-    player.muted = muteState.wasMuted;
-    player.volume = muteState.originalVolume;
+    video.muted = muteState.wasMuted;
+    video.volume = muteState.originalVolume;
     muteState.isMuted = false;
   }
 
-  currentSegment = null;
+  // 移除跳过按钮
+  if (uiElements.skipButton) {
+    uiElements.skipButton.remove();
+  }
 
-  // 清除通知超时
-  // if (skipNoticeTimeout) {
-  //   clearTimeout(skipNoticeTimeout);
-  //   skipNoticeTimeout = null;
-  // }
+  currentSegment = null;
 
   // 移除通知元素
   // const notice = document.querySelector(".sponsorblock-notice");
@@ -263,39 +277,6 @@ function showNotice(message) {
       }
     }, 300);
   }, 2000);
-}
-
-/**
- * 创建跳过按钮
- * @param {HTMLElement} controlBar 控制栏元素
- * @param {Function} onSkipClick 点击回调
- * @returns {HTMLElement} 跳过按钮元素
- */
-export function createSkipButton(onSkipClick) {
-  // 如果已存在，则移除
-  if (uiElements.skipButton) {
-    uiElements.skipButton.remove();
-  }
-
-  const skipButton = document.createElement("div");
-  skipButton.className = "sponsorblock-button";
-  skipButton.textContent = "跳过当前片段";
-  skipButton.style.cssText = `
-    position: absolute;
-    bottom: 80px;
-    left: 20px;
-    z-index: 100;
-  `;
-
-  skipButton.addEventListener("click", onSkipClick);
-
-  // 插入到控制栏
-  document
-    .querySelector(".app_selected--wrapper,.app_player--player")
-    ?.appendChild(skipButton);
-  uiElements.skipButton = skipButton;
-
-  return skipButton;
 }
 
 /**
