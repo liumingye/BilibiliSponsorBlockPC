@@ -23,14 +23,21 @@ export function createPreviewBar(playerControl) {
   if (uiElements.previewBar) {
     uiElements.previewBar.remove();
   }
+  if (uiElements.shadowPreviewbar) {
+    uiElements.shadowPreviewbar.remove();
+  }
 
   // 创建预览条容器
   const previewBar = createElement("div", { id: "previewbar" });
-  playerControl.progressBar.appendChild(previewBar);
+  playerControl.progressBar.prepend(previewBar);
   uiElements.previewBar = previewBar;
 
+  const shadowPreviewbar = createElement("div", { id: "shadowPreviewbar" });
+  playerControl.shadowProgressBar.prepend(shadowPreviewbar);
+  uiElements.shadowPreviewbar = shadowPreviewbar;
+
   // 更新预览条
-  updatePreviewBar(previewBar, playerControl);
+  updatePreviewBar(playerControl, { previewBar, shadowPreviewbar });
 
   return previewBar;
 }
@@ -40,9 +47,13 @@ export function createPreviewBar(playerControl) {
  * @param {HTMLElement} previewBar 预览条元素
  * @param {Array} segments 片段数组
  */
-export function updatePreviewBar(previewBar, playerControl) {
+export function updatePreviewBar(
+  playerControl,
+  { previewBar, shadowPreviewbar }
+) {
   // 清空预览条
   previewBar.innerHTML = "";
+  shadowPreviewbar.innerHTML = "";
 
   const { segments, video } = playerControl;
 
@@ -51,11 +62,10 @@ export function updatePreviewBar(previewBar, playerControl) {
   // 获取视频总时长
   const videoDuration = video.duration || 0;
   if (!videoDuration) return;
-  console.log(segments);
+  // console.log(segments);
   // 为每个片段创建预览块
   segments.forEach((info) => {
     const [startTime, endTime] = info.segment;
-    // info.segment.forEach(([startTime, endTime] = ) => {
     const startPercent = (startTime / videoDuration) * 100;
     const widthPercent = ((endTime - startTime) / videoDuration) * 100;
 
@@ -72,9 +82,19 @@ export function updatePreviewBar(previewBar, playerControl) {
         startTime
       )}-${formatTime(endTime)})`,
     });
+    previewBar.prepend(previewSegment);
 
-    previewBar.insertAdjacentElement("afterbegin", previewSegment);
-    // });
+    const shadowPreviewbarSegment = createElement("div", {
+      class: "previewbar",
+      style: {
+        position: "absolute",
+        opacity: "0.7",
+        left: `${startPercent}%`,
+        width: `${widthPercent}%`,
+        backgroundColor: `var(--sb-category-${info.category})`,
+      },
+    });
+    shadowPreviewbar.prepend(shadowPreviewbarSegment);
   });
 }
 
@@ -300,6 +320,10 @@ export function cleanupUI() {
   if (uiElements.previewBar) {
     uiElements.previewBar.remove();
     uiElements.previewBar = null;
+  }
+  if (uiElements.shadowPreviewbar) {
+    uiElements.shadowPreviewbar.remove();
+    uiElements.shadowPreviewbar = null;
   }
 
   // 移除跳过按钮

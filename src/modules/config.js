@@ -61,7 +61,7 @@ export const categoryStyles = `
 
 // 预览条样式
 export const previewBarStyles = `
-#previewbar {
+#previewbar, #shadowPreviewbar {
 	overflow: hidden;
 	padding: 0;
 	margin: 0;

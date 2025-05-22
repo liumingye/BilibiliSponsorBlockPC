@@ -42,7 +42,7 @@ export function waitForElement(selector, timeout = 10000) {
       return;
     }
 
-    const observer = new MutationObserver((mutations) => {
+    const observer = new MutationObserver((_mutations) => {
       const element = document.querySelector(selector);
       if (element) {
         observer.disconnect();

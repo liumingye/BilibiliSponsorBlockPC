@@ -11,20 +11,11 @@ const API_BASE_URL = "https://bsbsb.top/api";
  */
 export async function getSkipSegments(data) {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/skipSegments?${new URLSearchParams(data).toString()}`
-    );
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        return []; // 没有找到片段，返回空数组
-      }
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
+    return await httpServer.get(`${API_BASE_URL}/skipSegments`, {
+      params: data,
+    });
   } catch (error) {
-    console.error("Failed to fetch skip segments:", error);
+    // console.error("Failed to fetch skip segments:", error);
     return [];
   }
 }

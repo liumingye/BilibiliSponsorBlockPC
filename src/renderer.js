@@ -29,7 +29,7 @@ import { initStyles } from "./modules/styles.js";
 // 存储全局状态
 let playerControl = null;
 let segments = [];
-let currentVideoId = null;
+// let currentVideoId = null;
 
 /**
  * 初始化插件
@@ -89,14 +89,10 @@ async function observeSelectedPlayers() {
   await waitForConstant("selectedPlayers");
 
   // 监控selectedPlayers更改
-  let lastValue = window.selectedPlayers.activePlayer;
   const handler = {
-    set(target, prop, value) {
+    set(_target, prop) {
       if (prop === "activePlayer") {
-        // callback(value, lastValue);
-        // console.log('selectedPlayers 更改')
         initCurrentPage();
-        lastValue = value;
       }
       return Reflect.set(...arguments);
     },
@@ -159,7 +155,7 @@ async function initCurrentPage() {
       return;
     }
 
-    currentVideoId = videoID;
+    // currentVideoId = videoID;
     console.log(`BilibiliSponsorBlock: 当前视频ID: ${videoID}`);
 
     // 等待播放器加载
@@ -180,20 +176,29 @@ async function initCurrentPage() {
 
     // 等待进度条加载
     let progressBar;
+    let shadowProgressBar;
     if (window.location.href.includes("/index.html#/page/selected")) {
       progressBar = await waitForElement(
         `.app_selected--item[data-cid="${
           player.getManifest().cid
         }"] .bpx-player-progress`
       );
+      shadowProgressBar = await waitForElement(
+        `.app_selected--item[data-cid="${
+          player.getManifest().cid
+        }"] .bpx-player-shadow-progress-area`
+      );
     } else {
       progressBar = await waitForElement(".bpx-player-progress");
+      shadowProgressBar = await waitForElement(
+        ".bpx-player-shadow-progress-area"
+      );
     }
 
-    playerControl.progressBar = progressBar;
-
-    if (progressBar) {
+    if (progressBar && shadowProgressBar) {
       // 创建预览条
+      playerControl.progressBar = progressBar;
+      playerControl.shadowProgressBar = shadowProgressBar;
       createPreviewBar(playerControl);
     }
 
@@ -254,7 +259,7 @@ function cleanup() {
 
   // 重置状态
   segments = [];
-  currentVideoId = null;
+  // currentVideoId = null;
 }
 
 // 初始化插件

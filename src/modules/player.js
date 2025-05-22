@@ -40,7 +40,7 @@ export function initPlayerControl(player, segments) {
 
   playerControl.video = video;
 
-  console.log("playerControl", playerControl);
+  // console.log("playerControl", playerControl);
 
   return playerControl;
 }

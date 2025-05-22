@@ -1,5 +1,6 @@
 {
   "id": "BilibiliSponsorBlock",
+  "version": "1.0.0",
   "name": "Bilibili SponsorBlock",
   "injects": {
     "main": "./src/main.js",
