@@ -160,3 +160,10 @@ export async function waitForEqual(variable, value, time = 1000) {
 export function getCategoryName(category) {
   return categories[category] || category;
 }
+
+/**
+ * 判断是否为同一视频
+ */
+export function isSame(a, b) {
+  return a && b && a === b;
+}

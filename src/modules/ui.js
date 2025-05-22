@@ -99,51 +99,6 @@ export function updatePreviewBar(
 }
 
 /**
- * 创建跳过按钮
- * @param {HTMLElement} controlBar 控制栏元素
- * @param {Function} onSkipClick 点击回调
- * @returns {HTMLElement} 跳过按钮元素
- */
-export function createSkipButton(controlBar, onSkipClick) {
-  // 如果已存在，则移除
-  if (uiElements.skipButton) {
-    uiElements.skipButton.remove();
-  }
-
-  const skipButton = document.createElement("div");
-  skipButton.className = "sponsorblock-button";
-  skipButton.textContent = "跳过当前片段";
-  skipButton.style.cssText = `
-    position: absolute;
-    bottom: 80px;
-    left: 20px;
-    z-index: 100;
-  `;
-
-  // 创建跳过按钮
-  // const skipButton = createElement(
-  //   "div",
-  //   {
-  //     class: "sponsorblock-button",
-  //     title: "跳过当前片段",
-  //     style: {
-  //       color: "#00d400",
-  //     },
-  //   },
-  //   "跳过"
-  // );
-
-  skipButton.addEventListener("click", onSkipClick);
-
-  // 插入到控制栏
-  document.body.appendChild(skipButton);
-  // controlBar.appendChild(skipButton);
-  uiElements.skipButton = skipButton;
-
-  return skipButton;
-}
-
-/**
  * 创建设置按钮
  * @param {HTMLElement} controlBar 控制栏元素
  * @returns {HTMLElement} 设置按钮元素

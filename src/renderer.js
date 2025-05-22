@@ -9,21 +9,11 @@ import {
   getCId,
   waitForElement,
   waitForConstant,
-  waitForEqual,
+  isSame,
 } from "./modules/utils.js";
 import { getSkipSegments } from "./modules/api.js";
-import {
-  initPlayerControl,
-  cleanupPlayerControl,
-  resetPlayerState,
-} from "./modules/player.js";
-import {
-  // initUI,
-  createPreviewBar,
-  createSkipButton,
-  createSettingsButton,
-  cleanupUI,
-} from "./modules/ui.js";
+import { initPlayerControl, cleanupPlayerControl } from "./modules/player.js";
+import { createPreviewBar, cleanupUI } from "./modules/ui.js";
 import { initStyles } from "./modules/styles.js";
 
 // 存储全局状态
@@ -123,13 +113,6 @@ function observeUrlChange() {
 }
 
 /**
- * 判断是否为同一视频
- */
-function isSameVideo(currentID, targetID) {
-  return currentID && targetID && currentID === targetID;
-}
-
-/**
  * 初始化当前页面
  */
 async function initCurrentPage() {
@@ -167,7 +150,7 @@ async function initCurrentPage() {
 
     // 获取跳过片段
     const temp_segments = await getSkipSegments({ videoID, cid });
-    if (!isSameVideo(getVideoId(), videoID)) return;
+    if (!isSame(getVideoId(), videoID)) return;
     segments = temp_segments;
     console.log(`BilibiliSponsorBlock: 获取到 ${segments.length} 个片段`);
 

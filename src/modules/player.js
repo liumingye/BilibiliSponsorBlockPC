@@ -4,8 +4,7 @@
 
 import { options } from "./config.js";
 import { formatTime } from "./utils.js";
-import { createSkipButton } from "./ui.js";
-import { waitForElement, getCategoryName } from "./utils.js";
+import { getCategoryName } from "./utils.js";
 
 // 存储当前处理的片段信息
 let currentSegment = null;
@@ -64,7 +63,6 @@ function handleTimeUpdate(playerControl) {
     // 检查是否在任何片段内
     for (const info of segments) {
       // console.log(info)
-      //   for (const part of segment.segment) {
       const [startTime, endTime] = info.segment;
 
       // 如果当前时间在片段范围内
@@ -81,7 +79,6 @@ function handleTimeUpdate(playerControl) {
         // 如果已经通过了片段结束时间，恢复状态
         resetPlayerState(video);
       }
-      //   }
     }
   } finally {
     playerControl.isProcessing = false;
@@ -106,6 +103,8 @@ async function processSegment(player, segment, startTime, endTime) {
     endTime,
   };
 
+  if (startTime === endTime) return;
+
   const action = options.categoryActions[segment.category] || "skip";
 
   switch (action) {
@@ -119,8 +118,7 @@ async function processSegment(player, segment, startTime, endTime) {
       break;
     case "full":
       // 创建跳过按钮
-      const controlBar = await waitForElement(".bpx-player-control-wrap");
-      const skipButton = createSkipButton(controlBar, () => {
+      const skipButton = createSkipButton(() => {
         skipSegment(player, endTime);
         skipButton.remove();
       });
@@ -252,13 +250,9 @@ function showNotice(message) {
     transition: opacity 0.3s;
   `;
 
-  if (location.href.includes("/index.html#/page/selected")) {
-    parent = document.querySelector(".app_selected--wrapper");
-  } else {
-    parent = document.body;
-  }
-
-  parent?.appendChild(notice);
+  document
+    .querySelector(".app_selected--wrapper,.app_player--player")
+    ?.appendChild(notice);
 
   // 2秒后淡出
   setTimeout(() => {
@@ -269,6 +263,39 @@ function showNotice(message) {
       }
     }, 300);
   }, 2000);
+}
+
+/**
+ * 创建跳过按钮
+ * @param {HTMLElement} controlBar 控制栏元素
+ * @param {Function} onSkipClick 点击回调
+ * @returns {HTMLElement} 跳过按钮元素
+ */
+export function createSkipButton(onSkipClick) {
+  // 如果已存在，则移除
+  if (uiElements.skipButton) {
+    uiElements.skipButton.remove();
+  }
+
+  const skipButton = document.createElement("div");
+  skipButton.className = "sponsorblock-button";
+  skipButton.textContent = "跳过当前片段";
+  skipButton.style.cssText = `
+    position: absolute;
+    bottom: 80px;
+    left: 20px;
+    z-index: 100;
+  `;
+
+  skipButton.addEventListener("click", onSkipClick);
+
+  // 插入到控制栏
+  document
+    .querySelector(".app_selected--wrapper,.app_player--player")
+    ?.appendChild(skipButton);
+  uiElements.skipButton = skipButton;
+
+  return skipButton;
 }
 
 /**
