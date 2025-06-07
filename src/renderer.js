@@ -82,7 +82,7 @@ async function observeSelectedPlayers() {
   const handler = {
     set(_target, prop) {
       if (prop === "activePlayer") {
-        requestIdleCallback(() => initCurrentPage());
+        initCurrentPage();
       }
       return Reflect.set(...arguments);
     },
