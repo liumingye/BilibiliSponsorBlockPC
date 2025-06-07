@@ -80,41 +80,14 @@ async function observeSelectedPlayers() {
 
   // 监控selectedPlayers更改
   const handler = {
-    get(target, prop) {
+    set(_target, prop) {
       if (prop === "activePlayer") {
-        const player = Reflect.get(...arguments);
-        if (player && !playerStates.has(player)) {
-          playerStates.set(player, { lastInit: 0 });
-        }
-        return player;
-      }
-      return Reflect.get(...arguments);
-    },
-    set(target, prop, value) {
-      if (prop === "activePlayer") {
-        const now = Date.now();
-        const state = playerStates.get(value) || { lastInit: 0 };
-
-        // 节流控制：至少间隔 500ms 才初始化
-        if (now - state.lastInit > 500) {
-          state.lastInit = now;
-          requestIdleCallback(() => initCurrentPage());
-        }
+        requestIdleCallback(() => initCurrentPage());
       }
       return Reflect.set(...arguments);
     },
   };
-
   window.selectedPlayers = new Proxy(window.selectedPlayers, handler);
-  // const handler = {
-  //   set(_target, prop) {
-  //     if (prop === "activePlayer") {
-  //       initCurrentPage();
-  //     }
-  //     return Reflect.set(...arguments);
-  //   },
-  // };
-  // window.selectedPlayers = new Proxy(window.selectedPlayers, handler);
 }
 
 /**
