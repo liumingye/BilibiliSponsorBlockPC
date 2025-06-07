@@ -166,130 +166,130 @@ export function createSettingsButton(controlBar) {
 /**
  * 切换设置面板
  */
-function toggleSettingsPanel() {
-  if (uiElements.settingsPanel) {
-    uiElements.settingsPanel.remove();
-    uiElements.settingsPanel = null;
-    return;
-  }
+// function toggleSettingsPanel() {
+//   if (uiElements.settingsPanel) {
+//     uiElements.settingsPanel.remove();
+//     uiElements.settingsPanel = null;
+//     return;
+//   }
 
-  // 创建设置面板
-  const settingsPanel = createElement("div", {
-    class: "sponsorblock-settings-panel",
-  });
+//   // 创建设置面板
+//   const settingsPanel = createElement("div", {
+//     class: "sponsorblock-settings-panel",
+//   });
 
-  // 添加标题
-  settingsPanel.appendChild(createElement("h3", {}, "SponsorBlock 设置"));
+//   // 添加标题
+//   settingsPanel.appendChild(createElement("h3", {}, "SponsorBlock 设置"));
 
-  // 添加类别设置
-  const categoryGroup = createElement("div", {
-    class: "sponsorblock-settings-group",
-  });
+//   // 添加类别设置
+//   const categoryGroup = createElement("div", {
+//     class: "sponsorblock-settings-group",
+//   });
 
-  categoryGroup.appendChild(createElement("h4", {}, "片段处理方式"));
+//   categoryGroup.appendChild(createElement("h4", {}, "片段处理方式"));
 
-  // 添加各类别设置项
-  const categories = {
-    sponsor: "广告",
-    selfpromo: "自我推广",
-    exclusive_access: "品牌合作",
-    interaction: "互动提醒",
-    intro: "片头",
-    outro: "片尾",
-    preview: "预览/回顾",
-    filler: "闲聊",
-    music_offtopic: "非音乐部分",
-    poi_highlight: "精彩时刻",
-  };
+//   // 添加各类别设置项
+//   const categories = {
+//     sponsor: "广告",
+//     selfpromo: "自我推广",
+//     exclusive_access: "品牌合作",
+//     interaction: "互动提醒",
+//     intro: "片头",
+//     outro: "片尾",
+//     preview: "预览/回顾",
+//     filler: "闲聊",
+//     music_offtopic: "非音乐部分",
+//     poi_highlight: "精彩时刻",
+//   };
 
-  Object.entries(categories).forEach(([category, name]) => {
-    const settingItem = createElement("div", {
-      class: "sponsorblock-settings-item",
-    });
+//   Object.entries(categories).forEach(([category, name]) => {
+//     const settingItem = createElement("div", {
+//       class: "sponsorblock-settings-item",
+//     });
 
-    // 标签
-    const label = createElement(
-      "label",
-      {
-        for: `sb-category-${category}`,
-      },
-      name
-    );
-    settingItem.appendChild(label);
+//     // 标签
+//     const label = createElement(
+//       "label",
+//       {
+//         for: `sb-category-${category}`,
+//       },
+//       name
+//     );
+//     settingItem.appendChild(label);
 
-    // 选择框
-    const select = createElement("select", {
-      id: `sb-category-${category}`,
-      "data-category": category,
-    });
+//     // 选择框
+//     const select = createElement("select", {
+//       id: `sb-category-${category}`,
+//       "data-category": category,
+//     });
 
-    // 添加选项
-    const options = [
-      { value: "skip", text: "跳过" },
-      { value: "mute", text: "静音" },
-      { value: "full", text: "完整播放" },
-      { value: "overlay", text: "仅显示提示" },
-      { value: "disabled", text: "禁用" },
-    ];
+//     // 添加选项
+//     const options = [
+//       { value: "skip", text: "跳过" },
+//       { value: "mute", text: "静音" },
+//       { value: "full", text: "完整播放" },
+//       { value: "overlay", text: "仅显示提示" },
+//       { value: "disabled", text: "禁用" },
+//     ];
 
-    options.forEach((option) => {
-      const optionElement = createElement(
-        "option",
-        {
-          value: option.value,
-        },
-        option.text
-      );
-      select.appendChild(optionElement);
-    });
+//     options.forEach((option) => {
+//       const optionElement = createElement(
+//         "option",
+//         {
+//           value: option.value,
+//         },
+//         option.text
+//       );
+//       select.appendChild(optionElement);
+//     });
 
-    // 设置当前值
-    select.value =
-      window.sponsorBlockOptions?.categoryActions?.[category] || "skip";
+//     // 设置当前值
+//     select.value =
+//       window.sponsorBlockOptions?.categoryActions?.[category] || "skip";
 
-    // 添加事件监听
-    select.addEventListener("change", () => {
-      if (!window.sponsorBlockOptions) {
-        window.sponsorBlockOptions = { categoryActions: {} };
-      }
-      if (!window.sponsorBlockOptions.categoryActions) {
-        window.sponsorBlockOptions.categoryActions = {};
-      }
-      window.sponsorBlockOptions.categoryActions[category] = select.value;
+//     // 添加事件监听
+//     select.addEventListener("change", () => {
+//       if (!window.sponsorBlockOptions) {
+//         window.sponsorBlockOptions = { categoryActions: {} };
+//       }
+//       if (!window.sponsorBlockOptions.categoryActions) {
+//         window.sponsorBlockOptions.categoryActions = {};
+//       }
+//       window.sponsorBlockOptions.categoryActions[category] = select.value;
 
-      // 保存设置
-      localStorage.setItem(
-        "sponsorBlockOptions",
-        JSON.stringify(window.sponsorBlockOptions)
-      );
-    });
+//       // 保存设置
+//       localStorage.setItem(
+//         "sponsorBlockOptions",
+//         JSON.stringify(window.sponsorBlockOptions)
+//       );
+//     });
 
-    settingItem.appendChild(select);
-    categoryGroup.appendChild(settingItem);
-  });
+//     settingItem.appendChild(select);
+//     categoryGroup.appendChild(settingItem);
+//   });
 
-  settingsPanel.appendChild(categoryGroup);
+//   settingsPanel.appendChild(categoryGroup);
 
-  // 添加到页面
-  document.body.appendChild(settingsPanel);
-  uiElements.settingsPanel = settingsPanel;
+//   // 添加到页面
+//   document.body.appendChild(settingsPanel);
+//   uiElements.settingsPanel = settingsPanel;
 
-  // 点击外部关闭面板
-  document.addEventListener(
-    "click",
-    (event) => {
-      if (
-        uiElements.settingsPanel &&
-        !uiElements.settingsPanel.contains(event.target) &&
-        !uiElements.settingsButton.contains(event.target)
-      ) {
-        uiElements.settingsPanel.remove();
-        uiElements.settingsPanel = null;
-      }
-    },
-    { once: true }
-  );
-}
+//   // 点击外部关闭面板
+//   document.addEventListener(
+//     "click",
+//     (event) => {
+//       if (
+//         uiElements.settingsPanel &&
+//         !uiElements.settingsPanel.contains(event.target) &&
+//         !uiElements.settingsButton.contains(event.target)
+//       ) {
+//         uiElements.settingsPanel.remove();
+//         uiElements.settingsPanel = null;
+//       }
+//     },
+//     { once: true }
+//   );
+// }
 
 /**
  * 格式化时间

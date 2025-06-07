@@ -2,7 +2,7 @@
  * 播放器交互模块 - 处理与Bilibili播放器的交互
  */
 
-import { options } from "./config.js";
+import { categorieActions } from "./config.js";
 import { formatTime } from "./utils.js";
 import { getCategoryName } from "./utils.js";
 import { createSkipButton, uiElements } from "./ui.js";
@@ -39,9 +39,22 @@ export function initPlayerControl(player, segments) {
 
   playerControl.video = video;
 
-  // console.log("playerControl", playerControl);
-
   return playerControl;
+}
+
+/**
+ * 清理播放器控制
+ * @param {Object} playerControl 播放器控制对象
+ */
+export function cleanupPlayerControl(playerControl) {
+  if (playerControl && playerControl.video && playerControl.timeUpdateHandler) {
+    playerControl.video.removeEventListener(
+      "timeupdate",
+      playerControl.timeUpdateHandler
+    );
+  }
+
+  resetPlayerState(playerControl.video);
 }
 
 /**
@@ -49,9 +62,7 @@ export function initPlayerControl(player, segments) {
  * @param {Object} playerControl 播放器控制对象
  */
 function handleTimeUpdate(playerControl) {
-  const { player, segments, video } = playerControl;
-
-  // console.log(segments);
+  const { segments, video } = playerControl;
 
   if (playerControl.isProcessing || !segments || segments.length === 0) return;
 
@@ -62,7 +73,6 @@ function handleTimeUpdate(playerControl) {
 
     // 检查是否在任何片段内
     for (const info of segments) {
-      // console.log(info)
       const [startTime, endTime] = info.segment;
 
       // 如果当前时间在片段范围内
@@ -110,7 +120,7 @@ async function processSegment(
 
   if (startTime === endTime) return;
 
-  const action = options.categoryActions[segment.category] || "skip";
+  const action = categorieActions.value[segment.category] || "skip";
 
   switch (action) {
     case "skip":
@@ -277,19 +287,4 @@ function showNotice(message) {
       }
     }, 300);
   }, 2000);
-}
-
-/**
- * 清理播放器控制
- * @param {Object} playerControl 播放器控制对象
- */
-export function cleanupPlayerControl(playerControl) {
-  if (playerControl && playerControl.video && playerControl.timeUpdateHandler) {
-    playerControl.video.removeEventListener(
-      "timeupdate",
-      playerControl.timeUpdateHandler
-    );
-  }
-
-  resetPlayerState(playerControl.video);
 }

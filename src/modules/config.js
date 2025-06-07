@@ -2,6 +2,26 @@
  * 配置模块 - 包含插件的配置选项
  */
 
+export const configManager = new window.BiliConfigManager(
+  "BilibiliSponsorBlock",
+  {
+    // 各类型片段的处理方式配置
+    categoryActions: {
+      sponsor: "skip", // 广告
+      selfpromo: "mute", // 无偿/自我推广
+      exclusive_access: "full", // 柔性推广/品牌合作
+      interaction: "mute", // 三连/订阅提醒
+      intro: "mute", // 过场/开场动画
+      outro: "mute", // 鸣谢/结束画面
+      preview: "overlay", // 回顾/概要
+      filler: "disabled", // 离题闲聊/玩笑
+      music_offtopic: "skip", // 音乐:非音乐部分
+      poi_highlight: "mute", // 精彩时刻/重点
+    },
+  }
+);
+await configManager.load();
+
 export const categories = {
   sponsor: "广告",
   selfpromo: "自我推广",
@@ -16,20 +36,17 @@ export const categories = {
 };
 
 // 各类型片段的处理方式配置
-export const options = {
-  categoryActions: {
-    sponsor: "skip", // 广告
-    selfpromo: "mute", // 无偿/自我推广
-    exclusive_access: "full", // 柔性推广/品牌合作
-    interaction: "mute", // 三连/订阅提醒
-    intro: "mute", // 过场/开场动画
-    outro: "mute", // 鸣谢/结束画面
-    preview: "overlay", // 回顾/概要
-    filler: "disabled", // 离题闲聊/玩笑
-    music_offtopic: "skip", // 音乐:非音乐部分
-    poi_highlight: "mute", // 精彩时刻/重点
+export const categorieActions = Vue.ref(configManager.get("categoryActions"));
+
+Vue.watch(
+  categorieActions.value,
+  () => {
+    configManager.set("categoryActions", Vue.toRaw(categorieActions.value));
   },
-};
+  {
+    immediate: true,
+  }
+);
 
 // 类别颜色样式
 export const categoryStyles = `

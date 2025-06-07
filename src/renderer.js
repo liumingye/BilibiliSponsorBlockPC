@@ -3,7 +3,6 @@
  * 用于跳过或静音视频中的广告、自我推广等内容
  */
 
-import { options } from "./modules/config.js";
 import {
   getVideoId,
   getCId,
@@ -19,7 +18,6 @@ import { initStyles } from "./modules/styles.js";
 // 存储全局状态
 let playerControl = null;
 let segments = [];
-// let currentVideoId = null;
 
 /**
  * 初始化插件
@@ -34,7 +32,7 @@ async function init() {
   // initUI();
 
   // 加载设置
-  loadSettings();
+  // loadSettings();
 
   // 监听URL变化
   observeUrlChange();
@@ -51,27 +49,29 @@ async function init() {
 /**
  * 加载设置
  */
-function loadSettings() {
-  try {
-    const savedOptions = localStorage.getItem("sponsorBlockOptions");
-    if (savedOptions) {
-      const parsedOptions = JSON.parse(savedOptions);
+// function loadSettings() {
+//   try {
+//     const savedOptions = localStorage.getItem("sponsorBlockOptions");
+//     if (savedOptions) {
+//       const parsedOptions = JSON.parse(savedOptions);
 
-      // 合并设置
-      if (parsedOptions.categoryActions) {
-        options.categoryActions = {
-          ...options.categoryActions,
-          ...parsedOptions.categoryActions,
-        };
-      }
-    }
-  } catch (error) {
-    console.error("BilibiliSponsorBlock: 加载设置失败", error);
-  }
+//       // 合并设置
+//       if (parsedOptions.categoryActions) {
+//         options.categoryActions = {
+//           ...options.categoryActions,
+//           ...parsedOptions.categoryActions,
+//         };
+//       }
+//     }
+//   } catch (error) {
+//     console.error("BilibiliSponsorBlock: 加载设置失败", error);
+//   }
 
-  // 将设置暴露给全局
-  window.sponsorBlockOptions = options;
-}
+//   // 将设置暴露给全局
+//   window.sponsorBlockOptions = options;
+// }
+
+const playerStates = new WeakMap();
 
 async function observeSelectedPlayers() {
   if (!window.location.href.includes("/index.html")) return;
@@ -80,14 +80,41 @@ async function observeSelectedPlayers() {
 
   // 监控selectedPlayers更改
   const handler = {
-    set(_target, prop) {
+    get(target, prop) {
       if (prop === "activePlayer") {
-        initCurrentPage();
+        const player = Reflect.get(...arguments);
+        if (player && !playerStates.has(player)) {
+          playerStates.set(player, { lastInit: 0 });
+        }
+        return player;
+      }
+      return Reflect.get(...arguments);
+    },
+    set(target, prop, value) {
+      if (prop === "activePlayer") {
+        const now = Date.now();
+        const state = playerStates.get(value) || { lastInit: 0 };
+
+        // 节流控制：至少间隔 500ms 才初始化
+        if (now - state.lastInit > 500) {
+          state.lastInit = now;
+          requestIdleCallback(() => initCurrentPage());
+        }
       }
       return Reflect.set(...arguments);
     },
   };
+
   window.selectedPlayers = new Proxy(window.selectedPlayers, handler);
+  // const handler = {
+  //   set(_target, prop) {
+  //     if (prop === "activePlayer") {
+  //       initCurrentPage();
+  //     }
+  //     return Reflect.set(...arguments);
+  //   },
+  // };
+  // window.selectedPlayers = new Proxy(window.selectedPlayers, handler);
 }
 
 /**
@@ -138,7 +165,6 @@ async function initCurrentPage() {
       return;
     }
 
-    // currentVideoId = videoID;
     console.log(`BilibiliSponsorBlock: 当前视频ID: ${videoID}`);
 
     // 等待播放器加载
@@ -242,7 +268,6 @@ function cleanup() {
 
   // 重置状态
   segments = [];
-  // currentVideoId = null;
 }
 
 // 初始化插件
