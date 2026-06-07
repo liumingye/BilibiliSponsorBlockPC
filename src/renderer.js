@@ -14,10 +14,26 @@ import { getSkipSegments } from "./modules/api.js";
 import { initPlayerControl, cleanupPlayerControl } from "./modules/player.js";
 import { createPreviewBar, cleanupUI } from "./modules/ui.js";
 import { initStyles } from "./modules/styles.js";
+import { configManager, categorieActions } from "./modules/config.js";
 
 // 存储全局状态
 let playerControl = null;
 let segments = [];
+
+export const configDefaults = {
+  categoryActions: {
+    sponsor: "skip", // 广告
+    selfpromo: "mute", // 无偿/自我推广
+    exclusive_access: "full", // 柔性推广/品牌合作
+    interaction: "mute", // 三连/订阅提醒
+    intro: "mute", // 过场/开场动画
+    outro: "mute", // 鸣谢/结束画面
+    preview: "overlay", // 回顾/概要
+    filler: "disabled", // 离题闲聊/玩笑
+    music_offtopic: "skip", // 音乐:非音乐部分
+    poi_highlight: "mute", // 精彩时刻/重点
+  },
+};
 
 /**
  * 初始化插件
@@ -28,48 +44,14 @@ async function init() {
   // 初始化样式
   initStyles();
 
-  // 初始化UI
-  // initUI();
-
-  // 加载设置
-  // loadSettings();
-
   // 监听URL变化
   observeUrlChange();
 
   // 监听精选视频切换
   observeSelectedPlayers();
 
-  // 初始化当前页面
-  // await initCurrentPage();
-
   console.log("BilibiliSponsorBlock: 初始化完成");
 }
-
-/**
- * 加载设置
- */
-// function loadSettings() {
-//   try {
-//     const savedOptions = localStorage.getItem("sponsorBlockOptions");
-//     if (savedOptions) {
-//       const parsedOptions = JSON.parse(savedOptions);
-
-//       // 合并设置
-//       if (parsedOptions.categoryActions) {
-//         options.categoryActions = {
-//           ...options.categoryActions,
-//           ...parsedOptions.categoryActions,
-//         };
-//       }
-//     }
-//   } catch (error) {
-//     console.error("BilibiliSponsorBlock: 加载设置失败", error);
-//   }
-
-//   // 将设置暴露给全局
-//   window.sponsorBlockOptions = options;
-// }
 
 const playerStates = new WeakMap();
 
@@ -163,17 +145,17 @@ async function initCurrentPage() {
       progressBar = await waitForElement(
         `.app_selected--item[data-cid="${
           player.getManifest().cid
-        }"] .bpx-player-progress`
+        }"] .bpx-player-progress`,
       );
       shadowProgressBar = await waitForElement(
         `.app_selected--item[data-cid="${
           player.getManifest().cid
-        }"] .bpx-player-shadow-progress-area`
+        }"] .bpx-player-shadow-progress-area`,
       );
     } else {
       progressBar = await waitForElement(".bpx-player-progress");
       shadowProgressBar = await waitForElement(
-        ".bpx-player-shadow-progress-area"
+        ".bpx-player-shadow-progress-area",
       );
     }
 
@@ -184,47 +166,73 @@ async function initCurrentPage() {
       createPreviewBar(playerControl);
     }
 
-    // 等待控制栏加载
-    // const controlBar = await waitForElement(".bpx-player-control-wrap");
-    // if (controlBar) {
-    //   // 创建跳过按钮
-    //   createSkipButton(controlBar, () => {
-    //     console.log(111)
-    //   });
-    // }
-    //   if (playerControl && playerControl.player) {
-    //     // 查找当前时间后的下一个片段
-    //     const currentTime = playerControl.player.currentTime;
-    //     let nextSegmentEnd = null;
-    //     for (const segment of segments) {
-    //       for (const [start, end] of segment.segment) {
-    //         if (currentTime >= start && currentTime < end) {
-    //           nextSegmentEnd = end;
-    //           break;
-    //         } else if (start > currentTime) {
-    //           // 找到当前时间之后的第一个片段
-    //           if (nextSegmentEnd === null || start < nextSegmentEnd) {
-    //             nextSegmentEnd = end;
-    //           }
-    //           break;
-    //         }
-    //       }
-    //       if (nextSegmentEnd !== null) {
-    //         break;
-    //       }
-    //     }
-    //     if (nextSegmentEnd !== null) {
-    //       playerControl.player.currentTime = nextSegmentEnd;
-    //     }
-    //   }
-    // });
-    // 创建设置按钮
-    // createSettingsButton(controlBar);
-    // }
+
   } catch (error) {
     console.error("BilibiliSponsorBlock: 初始化页面失败", error);
   }
 }
+
+// 设置页面加载时触发
+export const onSettingsPageLoaded = async (view) => {
+  const { Select, Margin } = window.BiliComponents;
+
+  const skip = {
+    label: "跳过",
+    value: "skip",
+  };
+  const mute = {
+    label: "静音",
+    value: "mute",
+  };
+  const full = {
+    label: "完整播放",
+    value: "full",
+  };
+  const overlay = {
+    label: "仅显示提示",
+    value: "overlay",
+  };
+  const disabled = {
+    label: "禁用",
+    value: "disabled",
+  };
+
+  view.createSettingsItem({
+    name: "BilibiliSponsorBlockPC",
+    className: "bl-general-item",
+    children: [
+      ...[
+        ["广告", "sponsor"],
+        ["无偿/自我推广", "selfpromo"],
+        ["柔性推广/品牌合作", "exclusive_access"],
+        ["三连/订阅提醒", "interaction"],
+        ["过场/开场动画", "intro"],
+        ["鸣谢/结束画面", "outro"],
+        ["回顾/概要", "preview"],
+        ["离题闲聊/玩笑", "filler"],
+        ["音乐:非音乐部分", "music_offtopic"],
+        ["精彩时刻/重点", "poi_highlight"],
+      ].map((arr) => {
+        return new Select({
+          label: arr[0],
+          defaultValue: categorieActions.value[arr[1]],
+          options: [skip, mute, full, overlay, disabled],
+          onChange: (value) => {
+            categorieActions.value[arr[1]] = value;
+            configManager.set(
+              "categoryActions",
+              Vue.toRaw(categorieActions.value),
+              {
+                restart: false,
+              },
+            );
+          },
+          margin: { marginTop: Margin.MD },
+        });
+      }),
+    ],
+  });
+};
 
 /**
  * 清理资源

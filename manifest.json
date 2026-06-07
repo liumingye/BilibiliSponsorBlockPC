@@ -1,6 +1,7 @@
 {
   "manifest_version": 1,
   "id": "BilibiliSponsorBlock",
+  "type": "extension",
   "version": "1.0.0",
   "name": "Bilibili SponsorBlock",
   "description": "用于跳过或静音视频中的广告、自我推广等内容",
